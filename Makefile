@@ -9,6 +9,7 @@ SRCS = 	main.cpp \
 		location.cpp \
 		request.cpp \
 		fd_info.cpp \
+		get_method.cpp \
 
 OBJ = ${SRCS:.cpp=.o}
 

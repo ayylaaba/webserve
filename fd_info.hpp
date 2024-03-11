@@ -10,18 +10,23 @@
 #include <map>
 #include <vector>
 #include <fstream>
-// #include "server.hpp"
 #include <sys/epoll.h>
+#include "get_method.hpp"
+
+class get_method;
+class request;
 
 class fd_info
 {
     public:
-        int             res_header;
-        std::string     stor_uri;
-        std::ifstream    read_f;
-        int             rd_done;
-        int             res_sent;
-        std::streampos  filePosition;
+        int                 res_header;
+        std::string         stor_uri;
+        std::ifstream       read_f;
+        int                 rd_done;
+        int                 res_sent;
+        std::streampos      filePosition;
+        get_method          *get;
+        request             *requst;
 
         fd_info(std::string uri_);
         fd_info(const fd_info& copy);

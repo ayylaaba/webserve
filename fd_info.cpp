@@ -1,4 +1,6 @@
 #include "fd_info.hpp"
+#include "request.hpp"
+#include "get_method.hpp"
 
 fd_info::fd_info(std::string uri_)
 {

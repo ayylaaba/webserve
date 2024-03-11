@@ -12,28 +12,25 @@
 //     return response;
 // }
 
-
-
-
-std::string     request::get_header(int wich, std::string exten, std::string lentg, fd_info& fd_inf)
-{
-    std::string response;
-    if (wich == 0)
-    {
-        response = "HTTP/1.1 200 OK\r\n";
-        response += "Content-Type: " + exten + "\r\n" + "Content-Length: " + lentg + "\r\n\r\n";
-        fd_inf.res_header = 1;
-        return (response);
-    }
-    else if (wich == 1)
-    {
-        response = "HTTP/1.1 200 OK\r\n";
-        response += "Content-Type: " + exten + "\r\n" + "Content-Length: " + lentg + "\r\n\r\n";
-        fd_inf.res_header = 1;
-        return (response);
-    }
-    return "";
-}
+// std::string     request::get_header(int wich, std::string exten, std::string lentg, fd_info& fd_inf)
+// {
+//     std::string response;
+//     if (wich == 0)
+//     {
+//         response = "HTTP/1.1 200 OK\r\n";
+//         response += "Content-Type: " + exten + "\r\n" + "Content-Length: " + lentg + "\r\n\r\n";
+//         fd_inf.res_header = 1;
+//         return (response);
+//     }
+//     else if (wich == 1)
+//     {
+//         response = "HTTP/1.1 200 OK\r\n";
+//         response += "Content-Type: " + exten + "\r\n" + "Content-Length: " + lentg + "\r\n\r\n";
+//         fd_inf.res_header = 1;
+//         return (response);
+//     }
+//     return "";
+// }
 
 void            request::parse_req(std::string   rq, server &server)
 {
@@ -46,126 +43,204 @@ void            request::parse_req(std::string   rq, server &server)
     method        = vec[0];
     path          = vec[1];
     http_version  = vec[2];
-    fill_extentions();
-    uri = get_full_uri(path, server); // 
+    // fill_extentions();
+    uri = get_full_uri(path, server); //
 
     std::cout << "Full Path = " << uri << std::endl;
 
 }
 
-int    request::read_request(server &server, int fd)
+std::string     request::get_full_uri(std::string path, server &server)
 {
-    std::map<int, fd_info>::iterator it = fd_maps.find(fd);
-    std::string         line;
-    std::string         response;
-    std::string         extention_type;
-    std::stringstream   StringSize;
-    std::streampos      fileSize;
-    std::string         buff_s;
+    std::string loca_fldr; 
+    std::string rest_fldr;
+    std::string full_path;
+    size_t pos;
+    
+    check = 0;
+    path = path.substr(1);
+    pos = path.find("/");
+    loca_fldr = path.substr(0, pos); // folder that isolat from request line
+    rest_fldr = path.substr(pos + 1); // chyata lib9at mn wrat folder dyal request line.
 
-    if (it == fd_maps.end()) // print error
-        exit(1);
-    fileSize = get_fileLenth(it->second.stor_uri); // get full lenth of the file
-    extention_type = get_exten_type(it->second.stor_uri);
-    StringSize << fileSize;
-    if (!server.check_exist(it->second.stor_uri, 'f'))
+    // std::cout << "first_fldr = " << loca_fldr << "\n";
+    // std::cout << "rest of folder = " << rest_fldr << "\n";
+
+    for (size_t i = 0; i < server.s.size(); i++)
     {
-        if (!it->second.res_header)
+        for (size_t j = 0; j < server.s[i]->l.size(); j++)
         {
-            response = get_header(0, extention_type, StringSize.str(), it->second);
-            it->second.read_f.open(it->second.stor_uri.c_str());
-            send(fd, response.c_str(), response.size(), 0);
-        }
-        else
-        {
-            char            buff[1024];
-            int     x = it->second.read_f.read(buff, 1024).gcount();
-            if (it->second.read_f.gcount() > 0)
-                send(fd, buff, x, 0);
-            if (it->second.read_f.eof() || it->second.read_f.gcount() < 1024)
+            std::map<std::string, std::string>::iterator      ite = server.s[i]->l[j]->cont_l.end();
+            for (std::map<std::string, std::string>::iterator itb = server.s[i]->l[j]->cont_l.begin(); itb != ite; itb++)
             {
-                it->second.rd_done = 1;
-                return 1;
+                if (!(*itb).first.compare("location") &&  !(*itb).second.substr(1).compare(loca_fldr))
+                {
+                    std::cout << "check location == " << (*itb).first << " check Second == " << (*itb).second << "\n";
+                    checki = check_autoindex(server.s[i]->l[j]->cont_l);
+                    std::map<std::string, std::string>::iterator it_e = server.s[i]->l[j]->cont_l.end();
+                    for (std::map<std::string, std::string>::iterator it_b = server.s[i]->l[j]->cont_l.begin(); it_b != it_e; it_b++)
+                    {
+                        if (!(*it_b).first.compare("root"))
+                        {
+                            if (!rest_fldr.empty()) // rest 3amr
+                            {
+                                full_path = (*it_b).second + "/" + rest_fldr; 
+                                check = 1;
+                                break;
+                            }
+                            else
+                            {
+                                std::map<std::string, std::string>::iterator indx = server.s[i]->l[j]->cont_l.find("index");
+                                if (indx != server.s[i]->l[j]->cont_l.end())
+                                {
+                                    full_path = (*it_b).second + "/" + (*indx).second; 
+                                    check = 1;
+                                    break;
+                                }
+                                else
+                                    full_path = (*it_b).second + "/"; 
+                            }
+                        }
+                    }
+                    if (check)
+                        break;
+                }
             }
+            if (check)
+                break;
         }
-        // if (!it->second.res_header)
-        // {
-        //     response = get_header(0, extention_type, StringSize.str(), it->second);
-        //     it->second.read_f.open(it->second.stor_uri.c_str());
-        // }
-        // // std::ifstream    read_fd(it->second.stor_uri.c_str());
-        // it->second.read_f()
-        
-        // if (read_f.is_open())
-        // {
-        //     char            *buff = new char[fileSize];
+    }
+    return (full_path);
+}
 
-        //     read_fd.seekg(it->second.filePosition);
-        //     read_fd.read(buff, 1024);
-        //     buff_s.assign(buff, read_fd.gcount());
-        //     it->second.filePosition = read_fd.tellg();
-        //     if (read_fd.gcount() > 0)
-        //     {
-        //         if (it->second.res_header)
-        //         { 
-        //             response += buff_s;
-        //             buff_s = response;
-        //         }
-        //         send(fd, buff_s.c_str(), buff_s.size(), 0);
-        //     }
-        //     if (read_fd.eof())
-        //     {
-        //         it->second.rd_done = 1;
-        //         return 1;
-        //     }
+bool            request::check_autoindex(std::map<std::string, std::string> loca_map)
+{
+    std::map<std::string, std::string>::iterator it_e = loca_map.end();
+    for (std::map<std::string, std::string>::iterator it_b = loca_map.begin(); it_b != it_e; it_b++)
+    {
+        if (!(*it_b).first.compare("autoindex"))
+        {
+            if (!(*it_b).second.compare("on"))
+                checki = true;
+            break;
         }
-    // }
-//     else if (it->second.stor_uri[it->second.stor_uri.length() - 1] == '/' /*&& !checki*/)
+    }
+    return (checki);
+}
+
+// int    request::read_request(server &server, int fd)
+// {
+//     std::map<int, fd_info>::iterator it = fd_maps.find(fd);
+//     std::string         line;
+//     std::string         response;
+//     std::string         extention_type;
+//     std::stringstream   StringSize;
+//     std::streampos      fileSize;
+//     std::string         buff_s;
+
+//     if (it == fd_maps.end()) // print error
+//         exit(1);
+//     fileSize = get_fileLenth(it->second.stor_uri); // get full lenth of the file
+//     extention_type = get_exten_type(it->second.stor_uri);
+//     StringSize << fileSize;
+//     if (!server.check_exist(it->second.stor_uri, 'f'))
 //     {
-//         std::stringstream size;
-//         buff_s = generat_html_list(it->second.stor_uri.substr(0, it->second.stor_uri.find_last_of("/")));
-//         size << buff_s.size();
 //         if (!it->second.res_header)
-//             response = get_header(1, "text/html", size.str(), it->second);
-//         std::cout << "********************\n" << response << "\n*********************\n";
-//         std::cout << "HI \n";
-//         std::cout << " uri_ = " << it->second.stor_uri.substr(0, it->second.stor_uri.find_last_of("/")) << "\n";
-//         std::cout << "********************\n" << buff_s << "\n*********************\n";
-//             std::cout << "not was here \n" << it->second.res_header << "\n";
-//         if (it->second.res_header)
-//         { 
-//             std::cout << "was here \n" << it->second.res_header << "\n";
-
-//             response += buff_s;
-//             buff_s = response;
-//         }
-//         send(fd, buff_s.c_str(), buff_s.size(), 0);
-//         it->second.rd_done = 1;
-//         return 1;
-//     }
-//    else /// creeate html files for 404 error not found // the 
-//     {
-//         extention_type = get_exten_type(uri); 
-//         response = "HTTP/1.1 404 Not Found\r\n";
-//         response += "Content-Type:" + extention_type + "\r\n" + "Content-Length: " + StringSize.str() + "\n\r\n\r";
-//         std::ifstream    read_fd(uri.c_str()); //you need change path ornuf
-//         if (read_fd.is_open())
 //         {
-//             std::string res;
-//             res.resize(1024);
-//               while (1)
+//             response = get_header(0, extention_type, StringSize.str(), it->second);
+//             it->second.read_f.open(it->second.stor_uri.c_str());
+//             send(fd, response.c_str(), response.size(), 0);
+//         }
+//         else
+//         {
+//             char            buff[1024];
+//             int     x = it->second.read_f.read(buff, 1024).gcount();
+//             if (it->second.read_f.gcount() > 0)
+//                 send(fd, buff, x, 0);
+//             if (it->second.read_f.eof() || it->second.read_f.gcount() < 1024)
 //             {
-//                 char    *buff = new char[1024];
-//                 read_fd.read(buff, 1024);
-//                 res.resize(read_fd.gcount());
-//                 response += buff;
-//                 if (read_fd.eof())
-//                     break;
+//                 it->second.rd_done = 1;
+//                 return 1;
 //             }
 //         }
-    // }
-    return 0;
-}
+//         // if (!it->second.res_header)
+//         // {
+//         //     response = get_header(0, extention_type, StringSize.str(), it->second);
+//         //     it->second.read_f.open(it->second.stor_uri.c_str());
+//         // }
+//         // // std::ifstream    read_fd(it->second.stor_uri.c_str());
+//         // it->second.read_f()
+        
+//         // if (read_f.is_open())
+//         // {
+//         //     char            *buff = new char[fileSize];
+
+//         //     read_fd.seekg(it->second.filePosition);
+//         //     read_fd.read(buff, 1024);
+//         //     buff_s.assign(buff, read_fd.gcount());
+//         //     it->second.filePosition = read_fd.tellg();
+//         //     if (read_fd.gcount() > 0)
+//         //     {
+//         //         if (it->second.res_header)
+//         //         { 
+//         //             response += buff_s;
+//         //             buff_s = response;
+//         //         }
+//         //         send(fd, buff_s.c_str(), buff_s.size(), 0);
+//         //     }
+//         //     if (read_fd.eof())
+//         //     {
+//         //         it->second.rd_done = 1;
+//         //         return 1;
+//         //     }
+//         }
+//     // }
+// //     else if (it->second.stor_uri[it->second.stor_uri.length() - 1] == '/' /*&& !checki*/)
+// //     {
+// //         std::stringstream size;
+// //         buff_s = generat_html_list(it->second.stor_uri.substr(0, it->second.stor_uri.find_last_of("/")));
+// //         size << buff_s.size();
+// //         if (!it->second.res_header)
+// //             response = get_header(1, "text/html", size.str(), it->second);
+// //         std::cout << "********************\n" << response << "\n*********************\n";
+// //         std::cout << "HI \n";
+// //         std::cout << " uri_ = " << it->second.stor_uri.substr(0, it->second.stor_uri.find_last_of("/")) << "\n";
+// //         std::cout << "********************\n" << buff_s << "\n*********************\n";
+// //             std::cout << "not was here \n" << it->second.res_header << "\n";
+// //         if (it->second.res_header)
+// //         { 
+// //             std::cout << "was here \n" << it->second.res_header << "\n";
+
+// //             response += buff_s;
+// //             buff_s = response;
+// //         }
+// //         send(fd, buff_s.c_str(), buff_s.size(), 0);
+// //         it->second.rd_done = 1;
+// //         return 1;
+// //     }
+// //    else /// creeate html files for 404 error not found // the 
+// //     {
+// //         extention_type = get_exten_type(uri); 
+// //         response = "HTTP/1.1 404 Not Found\r\n";
+// //         response += "Content-Type:" + extention_type + "\r\n" + "Content-Length: " + StringSize.str() + "\n\r\n\r";
+// //         std::ifstream    read_fd(uri.c_str()); //you need change path ornuf
+// //         if (read_fd.is_open())
+// //         {
+// //             std::string res;
+// //             res.resize(1024);
+// //               while (1)
+// //             {
+// //                 char    *buff = new char[1024];
+// //                 read_fd.read(buff, 1024);
+// //                 res.resize(read_fd.gcount());
+// //                 response += buff;
+// //                 if (read_fd.eof())
+// //                     break;
+// //             }
+// //         }
+//     // }
+//     return 0;
+// }
 
 std::string     request::get_delet_resp(std::string path, int stat)
 {
@@ -192,28 +267,28 @@ std::string     request::get_delet_resp(std::string path, int stat)
     return (response);
 }
 
-std::string     request::get_ori_uri(std::string path, server &server)
-{
-    std::string line;
-    std::string method, path_, http_version, uri;
-    std::string response;
+// std::string     request::get_ori_uri(std::string path, server &server)
+// {
+//     std::string line;
+//     std::string method, path_, http_version, uri;
+//     std::string response;
 
-    size_t last = path.find("\r\n"); // understand more delete (recursive) and make a respone.
+//     size_t last = path.find("\r\n"); // understand more delete (recursive) and make a respone.
     
-    std::cout << "last character = " << last << " request_line == " << path.substr(0, last) << "\n";
+//     std::cout << "last character = " << last << " request_line == " << path.substr(0, last) << "\n";
     
-    std::vector<std::string> vec = server.isolate_str(path.substr(0, last) , ' ');
+//     std::vector<std::string> vec = server.isolate_str(path.substr(0, last) , ' ');
 
-    method        =  vec[0];
-    path_         =  vec[1];
-    http_version  =  vec[2];
+//     method        =  vec[0];
+//     path_         =  vec[1];
+//     http_version  =  vec[2];
  
-    std::cout << "method = " << method << " path == " << path_ << " http_version == " << http_version << "\n";
+//     std::cout << "method = " << method << " path == " << path_ << " http_version == " << http_version << "\n";
 
-    path = get_full_uri(path_, server); // get full path in the server
+//     path = get_full_uri(path_, server); // get full path in the server
 
-    return (path);
-}
+//     return (path);
+// }
 
 std::string     request::delet_method(std::string path, server &server)
 {
@@ -310,125 +385,63 @@ void        request::fill_extentions()
     extentions["woff"] = "application/font-woff";
 }
 
-std::string            request::get_index_file(std::map<std::string, std::string> &loca_map)
-{
-    std::map<std::string, std::string>::iterator it_e = loca_map.end();
-    for (std::map<std::string, std::string>::iterator it_b = loca_map.begin(); it_b != it_e; it_b++)
-    {
-        if (!(*it_b).first.compare("index"))
-        {
-            std::cout << "mkhaskch tdkhl yahad wld ..\n";
+// std::string            request::get_index_file(std::map<std::string, std::string> &loca_map)
+// {
+//     std::map<std::string, std::string>::iterator it_e = loca_map.end();
+//     for (std::map<std::string, std::string>::iterator it_b = loca_map.begin(); it_b != it_e; it_b++)
+//     {
+//         if (!(*it_b).first.compare("index"))
+//         {
+//             std::cout << "mkhaskch tdkhl yahad wld ..\n";
 
-            return ((*it_b).second);
-        }
-    }
-    return (0);
-}
+//             return ((*it_b).second);
+//         }
+//     }
+//     return (0);
+// }
 
-bool            request::check_autoindex(std::map<std::string, std::string> loca_map)
-{
-    std::map<std::string, std::string>::iterator it_e = loca_map.end();
-    for (std::map<std::string, std::string>::iterator it_b = loca_map.begin(); it_b != it_e; it_b++)
-    {
-        if (!(*it_b).first.compare("autoindex"))
-        {
-            if (!(*it_b).second.compare("on"))
-                checki = true;
-            break;
-        }
-    }
-    return (checki);
-}
+// bool            request::check_autoindex(std::map<std::string, std::string> loca_map)
+// {
+//     std::map<std::string, std::string>::iterator it_e = loca_map.end();
+//     for (std::map<std::string, std::string>::iterator it_b = loca_map.begin(); it_b != it_e; it_b++)
+//     {
+//         if (!(*it_b).first.compare("autoindex"))
+//         {
+//             if (!(*it_b).second.compare("on"))
+//                 checki = true;
+//             break;
+//         }
+//     }
+//     return (checki);
+// }
 
-std::string     request::get_full_uri(std::string path, server &server)
-{
-    std::string loca_fldr; 
-    std::string rest_fldr;
-    std::string full_path;
-    size_t pos;
-    
-    check = 0;
-    path = path.substr(1);
-    pos = path.find("/");
-    loca_fldr = path.substr(0, pos); // folder that isolat from request line
-    rest_fldr = path.substr(pos + 1); // chyata lib9at mn wrat folder dyal request line.
 
-    // std::cout << "first_fldr = " << loca_fldr << "\n";
-    // std::cout << "rest of folder = " << rest_fldr << "\n";
+// std::string    request::generat_html_list(std::string directory)
+// {
+//     std::string resp;
 
-    for (size_t i = 0; i < server.s.size(); i++)
-    {
-        for (size_t j = 0; j < server.s[i]->l.size(); j++)
-        {
-            std::map<std::string, std::string>::iterator      ite = server.s[i]->l[j]->cont_l.end();
-            for (std::map<std::string, std::string>::iterator itb = server.s[i]->l[j]->cont_l.begin(); itb != ite; itb++)
-            {
-                if (!(*itb).first.compare("location") &&  !(*itb).second.substr(1).compare(loca_fldr))
-                {
-                    std::cout << "check location == " << (*itb).first << " check Second == " << (*itb).second << "\n";
-                    checki = check_autoindex(server.s[i]->l[j]->cont_l);
-                    std::map<std::string, std::string>::iterator it_e = server.s[i]->l[j]->cont_l.end();
-                    for (std::map<std::string, std::string>::iterator it_b = server.s[i]->l[j]->cont_l.begin(); it_b != it_e; it_b++)
-                    {
-                        if (!(*it_b).first.compare("root"))
-                        {
-                            if (!rest_fldr.empty()) // rest 3amr
-                            {
-                                full_path = (*it_b).second + "/" + rest_fldr; 
-                                check = 1;
-                                break;
-                            }
-                            else
-                            {
-                                std::map<std::string, std::string>::iterator indx = server.s[i]->l[j]->cont_l.find("index");
-                                if (indx != server.s[i]->l[j]->cont_l.end())
-                                {
-                                    full_path = (*it_b).second + "/" + (*indx).second; 
-                                    check = 1;
-                                    break;
-                                }
-                                else
-                                    full_path = (*it_b).second + "/"; 
-                            }
-                        }
-                    }
-                    if (check)
-                        break;
-                }
-            }
-            if (check)
-                break;
-        }
-    }
-    return (full_path);
-}
+//     DIR *dir = opendir(directory.c_str());
 
-std::string    request::generat_html_list(std::string directory)
-{
-    std::string resp;
+//     if (dir)
+//     {
+//         resp += "<html><head><title>Index of " + directory + " </title></head><body>";
+//         resp += "<h1>Index of " + directory + "</h1><hr>";
 
-    DIR *dir = opendir(directory.c_str());
-
-    if (dir)
-    {
-        resp += "<html><head><title>Index of " + directory + " </title></head><body>";
-        resp += "<h1>Index of " + directory + "</h1><hr>";
-
-        struct dirent* entry;
-        while ((entry = readdir(dir)))
-        {
-            resp += "<a href=\""+ std::string(entry->d_name) + " \">" + std::string(entry->d_name) + "</a><br>";
-        }
-        resp += "<hr></body></html>";
-        closedir(dir);
-    }
-    else
-    {
-        perror("Folder Not Found");
-        exit(1);
-    }
-    return resp;
-}
+//         struct dirent* entry;
+//         while ((entry = readdir(dir)))
+//         {
+//             resp += "<a href=\""+ std::string(entry->d_name) + " \">" + std::string(entry->d_name) + "</a><br>";
+//         }
+//         resp += "<hr></body></html>";
+//         closedir(dir);
+//     }
+//     else
+//     {
+//         perror("Folder Not Found");
+//         exit(1);
+//     }
+//     return resp;
+// }
 
 std::string     request::get_exten_type(std::string path)
 {
@@ -460,6 +473,7 @@ std::streampos  request::get_fileLenth(std::string path)
 }
 
 request::request(/* args */){
+    fill_extentions();
 }
 
 request::~request(){

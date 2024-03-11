@@ -14,28 +14,22 @@
 #include "request.hpp"
 #include <sys/select.h>
 
-
 size_t MAX_CLIENTS = 10;
 int MAX_EVENTS = 1024;
 int BUFFER_SIZE = 1024;
+std::map<int, fd_info>  fd_maps;
 
 int main(int ac, char **av) 
 {
     int                 serverSocket;
-    // int                 newSocket;
-    // int                 rd_sock;
     request             rq;
     server              parse;
-    int         respo;
-
-    // fd_set              readfds;
-    // int                 activity;
+    int                 respo;
 
     if (ac < 2)
         parse.print_err("Argement Not Valid");
     
     parse.mange_file(av[1]);
-    // exit (1);
     size_t k,a;
     a = 0;
     k = 0;
@@ -115,7 +109,7 @@ int main(int ac, char **av)
 
 
     std::string tmp;
-    int bytesRead;
+    int bytesRead; // 2 classat lwal dyal requesst lakhor dyal get.
 
     while (1) 
     {
@@ -141,14 +135,17 @@ int main(int ac, char **av)
                     exit(1);
                 }
                 parse.req_time[client_sock] = 0;
+                fd_maps[events[i].data.fd ] = fd_info(); // each client has a obj of fd_info() that include methods an everything
+                std::cout << "here \n";
+                // exit (1);
             }
             else
             {
                 // std::cout << "L EVENT JAT FHAD L FD = " << events[i].data.fd << " \n";
-                std::map<int, fd_info>::iterator it_fd = rq.fd_maps.find(events[i].data.fd );
-                std::map<int, int>::iterator it = parse.req_time.find(events[i].data.fd );
-                std::cout<<"waaaaaaaaaaaaaaaaee:::"<<rq.fd_maps.size()<<std::endl;
-                if (events[i].events & EPOLLIN && !it->second)
+                std::map<int, fd_info>::iterator it_fd = fd_maps.find(events[i].data.fd);
+                // std::map<int, int>::iterator it = parse.req_time.find(events[i].data.fd );
+                std::cout<<"waaaaaaaaaaaaaaaaee::: " <<fd_maps.size()<<std::endl;
+                if (events[i].events & EPOLLIN /*&& !it->second*/)
                 {
                     std::cout << "FD READY TO READ -_- = " << events[i].data.fd << " \n";
                     bytesRead = recv(events[i].data.fd , buffer, BUFFER_SIZE, 0);
@@ -159,9 +156,7 @@ int main(int ac, char **av)
                         exit(1);
                     }
                     rq.parse_req(buffer, parse);                /// just for parsing request
-                    std::cout<<"----------------"<<std::endl;   
-                    rq.fd_maps[client_sock] = fd_info(rq.uri);  // must change.
-                    std::cout<<"----------------"<<std::endl;
+                    fd_maps[events[i].data.fd].requst = &rq ;  // must change.
                     parse.req_time[events[i].data.fd] = 1;
                 }
                 // map<fd, client>
@@ -184,17 +179,15 @@ int main(int ac, char **av)
                 //     delete{...}
                 //     abid : {post, ...};
                 // }
-                else if (events[i].events & EPOLLOUT && (*it).second && !(it_fd)->second.rd_done)
+                else if (events[i].events & EPOLLOUT /*&& (*it).second*/ && !(it_fd)->second.rd_done) // must not always enter to here i think ask about it 
                 {
                     std::cout << "ready  writing " << " \n";
-                    respo = rq.read_request(parse, events[i].data.fd);  // Replace this with your response logic
-                    // std::map<int, fd_info>::iterator it = rq.fd_maps.find(events[i].data.fd);
-                    if (respo /*&& it->second.rd_done*/)
+                    respo = it_fd->second.get->get_mthod(parse, events[i].data.fd);
+                    if (respo)
                     {
-                        // exit (1);
                         close(events[i].data.fd);
                         epoll_ctl(epoll_fd, EPOLL_CTL_DEL, events[i].data.fd , NULL);
-                        rq.fd_maps.erase(events[i].data.fd);
+                        fd_maps.erase(events[i].data.fd);
                         break ;
                     }
                 }
@@ -202,83 +195,5 @@ int main(int ac, char **av)
             }
         }
     }
-
-
-
-    // std::vector<int> clientSockets;
-    // for (size_t i = 0; i < clientSockets.size(); ++i) {
-    //     clientSockets[i] = 0;
-    // }
-
-    // int maxSockets = serverSocket;
-    // while (true) 
-    // {
-    //     FD_ZERO(&readfds);
-    //     FD_SET(serverSocket, &readfds);
-    //     for (size_t i = 0; i < MAX_CLIENTS; ++i) 
-    //     {
-    //         std::cout << "gogo\n";
-    //         if (clientSockets[i] > 0)
-    //         {
-    //             std::cout << "laaaa\n";
-    //             FD_SET(clientSockets[i], &readfds);
-    //         }
-    //     }
-    //     // Use select to monitor sockets
-    //     std::cout << "7adi kinamss \n";
-    //     activity = select(maxSockets + 1, &readfds, 0, 0, 0);
-    //     if ((activity < 0) && (errno != EINTR)) 
-    //         perror("Select error");
-    //     // Check if there is a new connection
-    //     if (FD_ISSET(serverSocket, &readfds)) 
-    //     {
-    //         std::cout << "maybe here\n";
-    //         if ((newSocket = accept(serverSocket, 0, 0)) < 0) {
-    //             perror("Accept failed");
-    //             exit(EXIT_FAILURE);
-    //         }     
-    //         std::cout << "socket Client == " << newSocket << "\n";
-    //         for (size_t i = 0; i < MAX_CLIENTS; i++)            // Add new socket to array of sockets
-    //         {
-    //             std::cout << "It Enter \n";
-    //             if (clientSockets[i] == 0) 
-    //             {
-    //                 std::cout << "Was ADD To The ARRAY == " << newSocket << "\n";
-    //                 clientSockets[i] = newSocket;
-    //                 break;
-    //             }
-    //         }
-    //         if (newSocket > maxSockets)             // Update maxSockets if needed
-    //             maxSockets = newSocket;
-    //         char buffer[3000];
-    //         rd_sock = read(newSocket, buffer, sizeof(buffer));  // Read from the accepted socket
-    //         rq.parse_req(buffer, parse);
-    //         std::cout << "************** Request ************** \n";
-    //         std::cout << buffer << "\n";
-    //         std::cout << "************************************* \n";
-    //         rq.fd_maps[newSocket] = new fd_info(rq.uri);
-    //         std::cout << "New connection, socket fd is " << newSocket << ", IP is: "
-    //                     << inet_ntoa(serverAddr.sin_addr) << ", port is: " << ntohs(serverAddr.sin_port) << std::endl;
-    //     }
-    //     // Check data from clients
-    //     for (size_t i = 0; i < MAX_CLIENTS; ++i)     
-    //     {
-    //         int socketDesc = clientSockets[i];
-
-    //         if (FD_ISSET(socketDesc, &readfds)) 
-    //         {
-    //             std::cout << "deja t create had socketDes an it ready to read data from it => " << socketDesc << std::endl;   
-    //             std::cout << "Segv \n";
-    //             int stat = rq.read_request(parse, socketDesc);
-    //             std::map<int, fd_info*>::iterator it = rq.fd_maps.find(socketDesc);
-    //             fd_info* obj = (*it).second; 
-    //             if (stat && obj->rd_done)
-    //             {
-    //                 close(socketDesc);
-    //                 clientSockets[i] = 0;
-    //             }
-    //         }
-    //     }
-    // }
     return 0;
 }
