@@ -14,7 +14,11 @@
 
 int i = 0;
 
-server::server(){}
+
+server::server()
+{
+    
+}
 
 server::server(std::map<std::string, std::string> &cont_s, std::vector<location*> &l_)
 {
@@ -167,13 +171,16 @@ int     server::valid_range(std::string s)
 
 int     server::check_exist(std::string path, char ch)
 {
+    std::cout << "path radi hm9na == " << path << "\n";
     if (ch == 'd')
     {
         DIR* dir = opendir(path.c_str());
         if (!dir)
         {
+            closedir(dir);
             return (1);
         }
+        closedir(dir);
         return (0);
     }
     else
@@ -184,6 +191,7 @@ int     server::check_exist(std::string path, char ch)
             std::fclose(file);
             return 0;
         }
+        std::fclose(file);
         return 1;
     }
 } 

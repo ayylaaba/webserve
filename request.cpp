@@ -36,7 +36,7 @@ void            request::parse_req(std::string   rq, server &server)
 {
     std::string line;
     size_t last = rq.find("\r\n");
-    // std::cout << "last character = " << last << " == " << rq.substr(0, last) << "\n";
+    std::cout << "request line 'first line' " << rq.substr(0, last) << "\n";
     std::vector<std::string> vec = server.isolate_str(rq.substr(0, last) , ' ');
     std::string     extention_type;
 
@@ -44,18 +44,24 @@ void            request::parse_req(std::string   rq, server &server)
     path          = vec[1];
     http_version  = vec[2];
     // fill_extentions();
+
+    std::cout << "method = " << method <<  " path " << path << ", http_v = " << http_version << std::endl;
+    
     uri = get_full_uri(path, server); //
-
+   
+    if (!uri.compare("error"))
+    {
+        std::cout << " ^-^ $ '_' $ ^-^ ERROR  == " << uri << "\n";
+    }
     std::cout << "Full Path = " << uri << std::endl;
-
 }
 
 std::string     request::get_full_uri(std::string path, server &server)
 {
-    std::string loca_fldr; 
+    std::string loca_fldr;
     std::string rest_fldr;
     std::string full_path;
-    size_t pos;
+    size_t      pos;
     
     check = 0;
     path = path.substr(1);
@@ -63,8 +69,8 @@ std::string     request::get_full_uri(std::string path, server &server)
     loca_fldr = path.substr(0, pos); // folder that isolat from request line
     rest_fldr = path.substr(pos + 1); // chyata lib9at mn wrat folder dyal request line.
 
-    // std::cout << "first_fldr = " << loca_fldr << "\n";
-    // std::cout << "rest of folder = " << rest_fldr << "\n";
+    std::cout << "first_fldr = " << loca_fldr << "\n";
+    std::cout << "rest of folder = " << rest_fldr << "\n";
 
     for (size_t i = 0; i < server.s.size(); i++)
     {
@@ -104,6 +110,12 @@ std::string     request::get_full_uri(std::string path, server &server)
                     }
                     if (check)
                         break;
+                }
+                else if (!loca_fldr.compare("favicon.ico"))
+                {
+                    full_path = "error";
+                    check = 1;
+                    break;
                 }
             }
             if (check)

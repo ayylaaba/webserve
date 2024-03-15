@@ -13,9 +13,6 @@
 #include <sys/epoll.h>
 #include "get_method.hpp"
 
-class get_method;
-class request;
-
 class fd_info
 {
     public:
@@ -24,10 +21,12 @@ class fd_info
         std::ifstream       read_f;
         int                 rd_done;
         int                 res_sent;
+        int                 u_can_send;
         std::streampos      filePosition;
-        get_method          *get;
-        request             *requst;
-
+        get_method          get;
+        request             requst;
+        // post                 *post_; abed class
+    
         fd_info(std::string uri_);
         fd_info(const fd_info& copy);
         fd_info&         operator=(const fd_info& copy);

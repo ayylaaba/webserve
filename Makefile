@@ -2,7 +2,7 @@ NAME = webserve
 
 CXX = c++
 
-CXXFLAGS = -Wall -Wextra -Werror -std=c++98 -fsanitize=address -g3
+CXXFLAGS = -Wall -Wextra -Werror -std=c++98 #-fsanitize=address -g3
 
 SRCS = 	main.cpp \
 		server.cpp \
@@ -10,6 +10,11 @@ SRCS = 	main.cpp \
 		request.cpp \
 		fd_info.cpp \
 		get_method.cpp \
+		./POST/for_body.cpp \
+		./POST/for_header.cpp \
+		./POST/get_extension.cpp \
+		./POST/helpers.cpp \
+		./POST/post.cpp \
 
 OBJ = ${SRCS:.cpp=.o}
 

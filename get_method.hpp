@@ -13,30 +13,34 @@
 #include <vector>
 #include <fstream>
 #include "server.hpp"
-#include "fd_info.hpp"
 #include "request.hpp"
 #include <sys/epoll.h>
 
 class fd_info;
-// class   request;
 
 class get_method
 {
     public:
-        // std::map<std::string, std::string>  extentions;
-        bool                                checki;
+        bool                checki;
+        // std::string         response;
+        // std::string         extention_type;
+        // std::stringstream   StringSize;
+        // std::streampos      fileSize;
+        // std::string         buff_s;
+        // std::stringstream   size;
+        // int                 check_path;
 
         /*************** GET FUNCTIONS ***************/
-        // std::string     get_header(int wich, std::string exten, std::string lentg, fd_info&  fd_inf);
+        std::string     get_header(int wich, std::string exten, std::string lentg, fd_info&  fd_inf);
         std::string     generat_html_list(std::string directory);
         std::string     get_index_file(std::map<std::string, std::string> &loca_map);
         bool            check_autoindex(std::map<std::string, std::string> loca_map);
-        std::string     get_header(int wich, std::string exten, std::string lentg, fd_info&  fd_inf);
-        int             get_mthod(server &server, int fd);
+        // std::string     get_header(int wich, std::string exten, std::string lentg, fd_info&  fd_inf);
+        int             get_mthod(int fd);
+        int check_exist(const std::string& path);
         /*************** REQUEST FUNCTIONS ***************/
         std::streampos  get_fileLenth(std::string path);
         std::string     get_exten_type(std::string path, std::map<std::string, std::string> &exta);
-        // void            fill_extentions();
         template <typename T>
         std::string to_string(T value) 
         {
@@ -44,7 +48,6 @@ class get_method
             oss << value;
             return oss.str();
         }
-
 };
 
 #endif
